@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Model Library</title>
+    <style>
+        body { font-family: sans-serif; background: #1a1a1a; color: #eee; margin: 0; padding: 20px; }
+        h1 { color: #fff; }
+        ul { list-style: none; padding: 0; }
+        li { padding: 8px 12px; border-bottom: 1px solid #333; }
+        li:hover { background: #2a2a2a; }
+        a { color: #7eb3e8; text-decoration: none; cursor: pointer; }
+        a:hover { text-decoration: underline; }
+        .folder::before { content: '📁 '; }
+        .file::before { content: '📄 '; }
+        .back { color: #aaa; }
+    </style>
+</head>
+<body>
+    <h1>3D Model Library</h1>
+    <ul id="filelist">Loading...</ul>
+    <script>
+        const modelExtensions = ['fcstd','stl','obj','3ds','3dm','3mf','amf','brep','dae','fbx','gltf','glb','ifc','iges','igs','off','ply','step','stp','wrl'];
+
+        function isFolder(href) {
+            return href.endsWith('/');
+        }
+
+        function isModel(href) {
+            const ext = href.split('.').pop().toLowerCase();
+            return modelExtensions.includes(ext);
+        }
+
+        function browse(path) {
+            document.getElementById('filelist').innerHTML = 'Loading...';
+            fetch(path)
+                .then(r => r.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const links = [...doc.querySelectorAll('a[href]')]
+                        .map(a => a.getAttribute('href'))
+                        .filter(h => !h.startsWith('?'));
+                    const ul = document.getElementById('filelist');
+                    ul.innerHTML = '';
+
+                    links.forEach(href => {
+                        const li = document.createElement('li');
+                        const a = document.createElement('a');
+
+                        if (href === '../') {
+                            const parentPath = path.split('/').slice(0, -2).join('/') + '/';
+                            a.className = 'back';
+                            a.textContent = '⬆ Up';
+                            a.onclick = () => browse(parentPath);
+                        } else if (isFolder(href)) {
+                            a.className = 'folder';
+                            a.textContent = decodeURIComponent(href);
+                            a.onclick = () => browse(path + href);
+                        } else if (isModel(href)) {
+                            a.className = 'file';
+                            a.textContent = decodeURIComponent(href);
+                            a.href = '/index.html#model=' + path + href;
+                        } else {
+                            return;
+                        }
+
+                        li.appendChild(a);
+                        ul.appendChild(li);
+                    });
+                });
+        }
+
+        browse('/models/');
+    </script>
+</body>
+</html>
